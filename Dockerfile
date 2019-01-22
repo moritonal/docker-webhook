@@ -25,4 +25,4 @@ RUN rm -f requirements.txt
 # Copy in webhook listener script
 COPY webhook_listener.py ./webhook_listener.py
 CMD ["python", "webhook_listener.py"]
-EXPOSE 8000
+EXPOSE 80
