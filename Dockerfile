@@ -19,8 +19,8 @@ WORKDIR /app
 
 # Install requirements
 COPY requirements.txt ./requirements.txt
-RUN pip install -r requirements.txt && \
-    rm -f requirements.txt
+RUN pip install -r requirements.txt
+RUN rm -f requirements.txt
 
 # Copy in webhook listener script
 COPY webhook_listener.py ./webhook_listener.py
