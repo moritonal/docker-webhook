@@ -79,9 +79,13 @@ def index():
                      branch, branch_whitelist)
         abort(403)
     
+
     # Run scripts, saving into responses (which we clear out)
     responses = {}
     for script in scripts:
+
+        logging.info("Update received, launching ${v}".format(v=script))
+        
         proc = Popen([script, branch], stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate()
         stdout = stdout.decode('utf-8')
