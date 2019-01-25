@@ -1,16 +1,13 @@
-FROM python:3
+FROM python:3-alpine3.8
 
 # Install docker
-RUN apt-get update
-RUN apt-get install apt-transport-https ca-certificates curl gnupg2 software-properties-common -y
-RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
-RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
-RUN apt-get update
-RUN apt-get install docker-ce -y
+RUN apk update
+RUN apk add docker
 
 # Install docker-compose
-RUN curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-RUN chmod +x /usr/local/bin/docker-compose
+RUN apk add py-pip
+RUN pip install --upgrade pip
+RUN pip install docker-compose
 
 # Create /app/ and /app/hooks/
 RUN mkdir -p /app/hooks/
