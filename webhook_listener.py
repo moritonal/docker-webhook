@@ -8,6 +8,9 @@ from sys import stderr, exit
 from traceback import print_exc
 
 from flask import Flask, abort, request
+from multiprocessing import Process
+
+import os
 
 logging.basicConfig(stream=stderr, level=logging.INFO)
 
@@ -20,6 +23,8 @@ if not scripts:
     logging.error("No executable hook scripts found; did you forget to"
                   " mount something into %s or chmod +x them?", HOOKS_DIR)
     exit(1)
+
+logging.info(dumps(scripts));
 
 # Get application secret
 webhook_secret = getenv('WEBHOOK_SECRET')
@@ -36,6 +41,26 @@ application = Flask(__name__)
 # Keep the logs of the last execution around
 responses = {}
 
+def callScript(script, branch, repository):
+
+    os.chmod(script, 0o744)
+
+    proc = Popen([script, repository, branch], stdout=PIPE, stderr=PIPE)
+
+    stdout, stderr = proc.communicate()
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
+
+    # Log errors if a hook failed
+    if proc.returncode != 0:
+        logging.error('Script: [%s]: %d\n%s', script, proc.returncode, stderr)
+    else:
+        logging.info('Script: [%s]: %d\nOut: %s\nErr: %s', script, proc.returncode, stdout, stderr)
+        
+    responses[script] = {
+        'script': script,
+        'args': stderr
+    }
 
 @application.route('/', methods=['POST'])
 def index():
@@ -67,7 +92,14 @@ def index():
 
     # Try to parse out the branch from the request payload
     try:
-        branch = request.get_json(force=True)["ref"].split("/", 2)[2]
+        messageAsJson = request.get_json(force=True)
+    except:
+        print_exc()
+        logging.info("Parsing payload failed")
+        abort(400)
+
+    try:
+        branch = messageAsJson["ref"].split("/", 2)[2]
     except:
         print_exc()
         logging.info("Parsing payload failed")
@@ -81,26 +113,23 @@ def index():
     
 
     # Run scripts, saving into responses (which we clear out)
-    responses = {}
+    scriptInfo = []
+
     for script in scripts:
 
-        logging.info("Update received, launching ${v}".format(v=script))
-        
-        proc = Popen([script, branch], stdout=PIPE, stderr=PIPE)
-        stdout, stderr = proc.communicate()
-        stdout = stdout.decode('utf-8')
-        stderr = stderr.decode('utf-8')
+        logging.info("Update received, launching {v}".format(v=script))
 
-        # Log errors if a hook failed
-        if proc.returncode != 0:
-            logging.error('[%s]: %d\n%s', script, proc.returncode, stderr)
-        
-        responses[script] = {
-            'stdout': stdout,
-            'stderr': stderr
-        }
+        repository = messageAsJson["repository"]["name"]
 
-    return dumps(responses)
+        p = Process(target=callScript, args=(script, branch, repository))
+        p.start()
+
+        scriptInfo.append({
+            "script": script,
+            "args": [branch, repository]
+        })
+
+    return dumps(scriptInfo)
 
 @application.route('/logs', methods=['GET'])
 def logs():
