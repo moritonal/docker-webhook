@@ -45,7 +45,7 @@ def callScript(script, branch, repository):
 
     os.chmod(script, 0o744)
 
-    proc = Popen([script, repository, branch], stdout=PIPE, stderr=PIPE)
+    proc = Popen([script, branch, repository], stdout=PIPE, stderr=PIPE)
 
     stdout, stderr = proc.communicate()
     stdout = stdout.decode('utf-8')
