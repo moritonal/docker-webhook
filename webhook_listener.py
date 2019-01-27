@@ -119,7 +119,7 @@ def index():
 
         logging.info("Update received, launching {v}".format(v=script))
 
-        repository = messageAsJson["repository"]["name"]
+        repository = messageAsJson["repository"]["git_url"]
 
         p = Process(target=callScript, args=(script, branch, repository))
         p.start()
